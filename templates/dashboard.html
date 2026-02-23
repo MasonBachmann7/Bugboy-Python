@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BugBoy Python — Bug Trigger Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #0f1117;
+            color: #e1e4e8;
+            line-height: 1.6;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1a1e2e 0%, #16192b 100%);
+            border-bottom: 1px solid #2d3348;
+            padding: 24px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        header h1 {
+            font-size: 22px;
+            font-weight: 600;
+            color: #f0f3f6;
+        }
+
+        header h1 span {
+            color: #f85149;
+        }
+
+        .badge {
+            background: #f8514922;
+            color: #f85149;
+            font-size: 13px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+
+        .intro {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 20px 24px;
+            margin-bottom: 28px;
+        }
+
+        .intro p {
+            color: #8b949e;
+            font-size: 14px;
+        }
+
+        .intro code {
+            background: #1c2333;
+            color: #79c0ff;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .bug-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .bug-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 18px 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: border-color 0.15s, background 0.15s;
+        }
+
+        .bug-card:hover {
+            border-color: #484f58;
+            background: #1c2128;
+        }
+
+        .bug-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .bug-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+
+        .bug-name {
+            font-weight: 600;
+            font-size: 15px;
+            color: #f0f3f6;
+        }
+
+        .bug-category {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 500;
+            background: #1c2333;
+            color: #79c0ff;
+            border: 1px solid #264773;
+            white-space: nowrap;
+        }
+
+        .bug-method {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .bug-method.get {
+            background: #23883322;
+            color: #3fb950;
+            border: 1px solid #23883355;
+        }
+
+        .bug-method.post {
+            background: #d2992222;
+            color: #d29922;
+            border: 1px solid #d2992255;
+        }
+
+        .bug-desc {
+            color: #8b949e;
+            font-size: 13px;
+            margin-top: 2px;
+        }
+
+        .bug-route {
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            font-size: 12px;
+            color: #8b949e;
+            background: #0d1117;
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin-top: 6px;
+            display: inline-block;
+        }
+
+        .bug-actions {
+            margin-left: 20px;
+            flex-shrink: 0;
+        }
+
+        .trigger-btn {
+            background: #f8514918;
+            color: #f85149;
+            border: 1px solid #f8514940;
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: inherit;
+        }
+
+        .trigger-btn:hover {
+            background: #f8514930;
+            border-color: #f85149;
+        }
+
+        .trigger-btn:active {
+            transform: scale(0.97);
+        }
+
+        /* Result modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            width: 700px;
+            max-width: 90vw;
+            max-height: 80vh;
+            overflow: auto;
+            padding: 28px;
+        }
+
+        .modal h2 {
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        .modal .status {
+            font-size: 13px;
+            margin-bottom: 16px;
+        }
+
+        .modal .status.error { color: #f85149; }
+        .modal .status.ok { color: #3fb950; }
+
+        .modal pre {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 16px;
+            font-size: 12px;
+            overflow-x: auto;
+            color: #e1e4e8;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .modal-close {
+            margin-top: 16px;
+            background: #21262d;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+            padding: 8px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-family: inherit;
+        }
+
+        .modal-close:hover {
+            background: #30363d;
+        }
+
+        footer {
+            text-align: center;
+            padding: 32px;
+            color: #484f58;
+            font-size: 13px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #f8514940;
+            border-top-color: #f85149;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🐛 Bug<span>Boy</span> Python</h1>
+    <div class="badge">{{ bugs | length }} bugs loaded</div>
+</header>
+
+<div class="container">
+    <div class="intro">
+        <p>
+            This is a test harness for <strong>BugStack's Python SDK</strong>.
+            Each card below triggers a realistic runtime error. Click
+            <strong>Trigger</strong> to fire the bug and inspect the response.
+            All errors propagate through Flask's error handler so BugStack
+            middleware can capture them.
+        </p>
+    </div>
+
+    <div class="bug-grid">
+        {% for bug in bugs %}
+        <div class="bug-card" data-route="{{ bug.route }}" data-method="{{ bug.method }}">
+            <div class="bug-info">
+                <div class="bug-header">
+                    <span class="bug-method {{ bug.method | lower }}">{{ bug.method }}</span>
+                    <span class="bug-name">{{ bug.name }}</span>
+                    <span class="bug-category">{{ bug.category }}</span>
+                </div>
+                <div class="bug-desc">{{ bug.description }}</div>
+                <span class="bug-route">{{ bug.route }}</span>
+            </div>
+            <div class="bug-actions">
+                <button class="trigger-btn" onclick="triggerBug(this, '{{ bug.route }}', '{{ bug.method }}')">
+                    Trigger
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Result modal -->
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+    <div class="modal">
+        <h2 id="modal-title">Result</h2>
+        <div class="status" id="modal-status"></div>
+        <pre id="modal-body"></pre>
+        <button class="modal-close" onclick="document.getElementById('modal').classList.remove('active')">Close</button>
+    </div>
+</div>
+
+<footer>
+    BugBoy Python &middot; BugStack SDK Test Harness
+</footer>
+
+<script>
+    async function triggerBug(btn, route, method) {
+        const originalText = btn.textContent;
+        btn.innerHTML = '<span class="loading"></span>Triggering…';
+        btn.disabled = true;
+
+        try {
+            const opts = { method };
+            if (method === "POST") {
+                opts.headers = { "Content-Type": "application/octet-stream" };
+                opts.body = "";
+            }
+
+            const res = await fetch(route, opts);
+            const data = await res.json();
+
+            document.getElementById("modal-title").textContent =
+                res.ok ? "Success" : `Error — ${data.error || res.status}`;
+
+            const statusEl = document.getElementById("modal-status");
+            statusEl.textContent = `HTTP ${res.status}`;
+            statusEl.className = "status " + (res.ok ? "ok" : "error");
+
+            document.getElementById("modal-body").textContent =
+                JSON.stringify(data, null, 2);
+
+            document.getElementById("modal").classList.add("active");
+        } catch (err) {
+            alert("Request failed: " + err.message);
+        } finally {
+            btn.textContent = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    function closeModal(e) {
+        if (e.target === e.currentTarget) {
+            e.currentTarget.classList.remove("active");
+        }
+    }
+</script>
+
+</body>
+</html>
