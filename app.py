@@ -9,16 +9,11 @@ import traceback
 import threading
 
 from flask import Flask, request, jsonify, render_template
-import bugstack
-from bugstack.integrations.flask import init_app
 
 import services
 import utils
 
-bugstack.init(api_key="bs_live_...")
-
 app = Flask(__name__)
-init_app(app)
 
 
 # ── Bug Registry ─────────────────────────────────────────────────────────────
