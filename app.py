@@ -4,11 +4,13 @@ runtime errors for testing BugStack's Python SDK.
 
 Run with:  python app.py
 """
+import os
 import sys
 import traceback
 import threading
 
 from flask import Flask, request, jsonify, render_template
+import bugstack
 
 import services
 import utils
@@ -16,6 +18,12 @@ import bugstack
 import os
 
 app = Flask(__name__)
+
+bugstack.init(
+    api_key=os.environ.get("BUGSTACK_API_KEY", ""),
+    endpoint=os.environ.get("BUGSTACK_ENDPOINT", "https://bugstack-error-service.onrender.com/api/capture"),
+    debug=True,
+)
 
 
 # BugStack error monitoring
@@ -389,8 +397,8 @@ def health():
 
 @app.errorhandler(Exception)
 def handle_exception(e):
-    """Return a JSON error response while letting the exception propagate
-    to any installed error-tracking middleware (e.g., BugStack)."""
+    """Capture the error with BugStack, then return a JSON error response."""
+    bugstack.capture_exception(e)
     tb = traceback.format_exc()
     app.logger.error("Unhandled exception:\n%s", tb)
     return jsonify({
