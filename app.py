@@ -14,8 +14,6 @@ import bugstack
 
 import services
 import utils
-import bugstack
-import os
 
 app = Flask(__name__)
 
@@ -23,12 +21,6 @@ bugstack.init(
     api_key=os.environ.get("BUGSTACK_API_KEY", ""),
     endpoint=os.environ.get("BUGSTACK_ENDPOINT", "https://bugstack-error-service.onrender.com/api/capture"),
     debug=True,
-)
-
-
-# BugStack error monitoring
-bugstack.init(
-    api_key=os.environ.get("BUGSTACK_API_KEY", ""),
 )
 
 # ── Bug Registry ─────────────────────────────────────────────────────────────
