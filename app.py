@@ -12,9 +12,16 @@ from flask import Flask, request, jsonify, render_template
 
 import services
 import utils
+import bugstack
+import os
 
 app = Flask(__name__)
 
+
+# BugStack error monitoring
+bugstack.init(
+    api_key=os.environ.get("BUGSTACK_API_KEY", ""),
+)
 
 # ── Bug Registry ─────────────────────────────────────────────────────────────
 # Every triggerable bug is registered here so the dashboard can list them.
