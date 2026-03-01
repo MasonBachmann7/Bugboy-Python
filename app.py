@@ -390,7 +390,10 @@ def health():
 @app.errorhandler(Exception)
 def handle_exception(e):
     """Capture the error with BugStack, then return a JSON error response."""
-    bugstack.capture_exception(e)
+    bugstack.capture_exception(
+        e,
+        request=bugstack.RequestContext(route=request.path, method=request.method),
+    )
     tb = traceback.format_exc()
     app.logger.error("Unhandled exception:\n%s", tb)
     return jsonify({
