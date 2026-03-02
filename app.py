@@ -385,6 +385,89 @@ def health():
     return jsonify({"status": "ok", "app": "bugboy-python"})
 
 
+# ── SDK Diagnostic ──────────────────────────────────────────────────────────
+
+@app.route("/diagnostic")
+def diagnostic():
+    """Test SDK connectivity and transport health."""
+    import json as _json
+    import time as _time
+
+    results = {}
+    endpoint = os.environ.get("BUGSTACK_ENDPOINT", "")
+    api_key = os.environ.get("BUGSTACK_API_KEY", "")
+
+    # 1. Check env vars
+    results["env"] = {
+        "api_key_set": bool(api_key),
+        "api_key_prefix": api_key[:8] + "..." if api_key else "",
+        "endpoint": endpoint,
+    }
+
+    # 2. Check SDK client state
+    client = bugstack.get_client()
+    if client:
+        transport = client._transport
+        results["sdk"] = {
+            "initialized": True,
+            "enabled": client._config.enabled,
+            "dry_run": client._config.dry_run,
+            "transport_exists": transport is not None,
+        }
+        if transport:
+            results["sdk"]["worker_alive"] = transport._worker_thread.is_alive()
+            with transport._queue_lock:
+                results["sdk"]["queue_length"] = len(transport._queue)
+    else:
+        results["sdk"] = {"initialized": False}
+
+    # 3. Direct httpx test (bypass SDK entirely)
+    try:
+        import httpx
+        results["httpx_version"] = httpx.__version__
+        test_payload = {
+            "apiKey": api_key,
+            "error": {
+                "message": "SDK diagnostic test",
+                "stackTrace": "diagnostic",
+                "file": "app.py",
+                "function": "diagnostic",
+                "fingerprint": f"diag-{_time.time()}",
+            },
+            "request": {"route": "/diagnostic", "method": "GET"},
+            "environment": {"language": "python"},
+            "timestamp": __import__("datetime").datetime.now(
+                __import__("datetime").timezone.utc
+            ).isoformat(),
+        }
+        with httpx.Client(timeout=10.0) as hc:
+            resp = hc.post(
+                endpoint,
+                content=_json.dumps(test_payload),
+                headers={
+                    "Content-Type": "application/json",
+                    "X-BugStack-API-Key": api_key,
+                },
+            )
+            results["direct_send"] = {
+                "status_code": resp.status_code,
+                "body": resp.text[:300],
+            }
+    except Exception as exc:
+        results["direct_send"] = {"error": str(exc)}
+
+    # 4. SDK capture test (uses background thread)
+    try:
+        raise RuntimeError("SDK diagnostic capture test")
+    except RuntimeError as e:
+        accepted = bugstack.capture_exception(
+            e, request=bugstack.RequestContext(route="/diagnostic", method="GET")
+        )
+        results["sdk_capture"] = {"accepted": accepted}
+
+    return jsonify(results)
+
+
 # ── Error handler (lets errors propagate naturally for BugStack) ─────────────
 
 @app.errorhandler(Exception)
