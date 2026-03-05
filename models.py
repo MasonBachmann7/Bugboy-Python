@@ -1,6 +1,4 @@
-"""
-Data models for the BugBoy task management application.
-"""
+"""Data models for the BugBoy task management application."""
 import json
 import threading
 import time
@@ -23,7 +21,7 @@ class User:
 
     def get_notification_settings(self):
         # Bug: preferences is a dict without a 'notifications' key → KeyError
-        return self.preferences["notifications"]
+        return self.preferences.get("notifications") if self.preferences else None
 
 
 class Task:
